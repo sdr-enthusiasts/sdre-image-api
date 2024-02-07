@@ -9,3 +9,17 @@ datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }
+
+model LastUpdated {
+  id    Int     @id @default(autoincrement())
+  time  DateTime @default(now())
+}
+
+model Images {
+  id    Int     @id @default(autoincrement())
+  name  String
+  url   String
+  modified_date  DateTime @updatedAt
+  created_date   DateTime @default(now())
+  stable Boolean
+}
