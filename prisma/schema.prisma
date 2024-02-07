@@ -21,5 +21,8 @@ model Images {
   url   String
   modified_date  DateTime @updatedAt
   created_date   DateTime @default(now())
+  tag  String
+  release_notes String
   stable Boolean
+  is_pinned_version Boolean
 }

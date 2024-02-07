@@ -1,6 +1,7 @@
 node_modules/
 .env
 *.pem
-prisma/migrations/20240205224010_init/migration.sql
+*.sql
 prisma/migrations/migration_lock.toml
 prisma/test.db
+*-journal

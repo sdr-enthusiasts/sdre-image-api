@@ -7,6 +7,7 @@
 const express = require("express");
 const { PrismaClient } = require("@prisma/client");
 const { Octokit, App } = require("octokit");
+const winston = require("winston");
 const app = express();
 const port = process.env.PORT || 3000;
 const prisma = new PrismaClient();
@@ -44,26 +45,123 @@ const IGNORED_REPOS = [
   "rbfeeder",
 ];
 
+const logger = winston.createLogger({
+  level: "info",
+  format: winston.format.json(),
+  defaultMeta: { service: "user-service" },
+});
+
+if (process.env.NODE_ENV !== "production") {
+  logger.add(
+    new winston.transports.Console({
+      format: winston.format.simple(),
+    })
+  );
+} else {
+  logger.add(
+    new winston.transports.File({ filename: "error.log", level: "error" })
+  );
+
+  logger.add(new winston.transports.File({ filename: "combined.log" }));
+}
+
 app.get(
   "/api/last-updated",
   async (req: any, res: { json: (arg0: { lastUpdated: any }) => void }) => {
-    const lastUpdated = await prisma.lastUpdated.findMany({
-      take: 1,
-      orderBy: {
-        time: "desc",
-      },
-    });
-    // verify that the lastUpdated is not empty
-    if (lastUpdated.length === 0) {
-      return res.json({ lastUpdated: null });
-    }
+    let lastUpdatedOutput = null;
 
-    res.json({ lastUpdated: lastUpdated[0].time });
+    await prisma.lastUpdated
+      .findMany({
+        take: 1,
+        orderBy: {
+          time: "desc",
+        },
+      })
+      .then((lastUpdated: any) => {
+        if (lastUpdated.length > 0) {
+          lastUpdatedOutput = lastUpdated[0].time;
+        }
+      })
+      .catch((e: any) => {
+        logger.error(e);
+      });
+
+    return res.json({ lastUpdated: lastUpdatedOutput || "never" });
+  }
+);
+
+app.get(
+  "/api/images/all",
+  async (req: any, res: { json: (arg0: { images: any }) => void }) => {
+    let images = await prisma.Images.findMany({
+      orderBy: {
+        name: "asc",
+      },
+    }).catch((e: any) => {
+      logger.error(e);
+    });
+
+    return res.json({ images: images });
+  }
+);
+
+app.get(
+  "/api/images/byname/:name",
+  async (req: any, res: { json: (arg0: { images: any }) => void }) => {
+    let images = await prisma.Images.findMany({
+      where: {
+        name: req.params.name,
+      },
+      orderBy: {
+        name: "asc",
+      },
+    }).catch((e: any) => {
+      logger.error(e);
+    });
+
+    return res.json({ images: images });
+  }
+);
+
+app.get(
+  "/api/images/all/stable",
+  async (req: any, res: { json: (arg0: { images: any }) => void }) => {
+    let images = await prisma.Images.findMany({
+      where: {
+        stable: true,
+      },
+      orderBy: {
+        name: "asc",
+      },
+    }).catch((e: any) => {
+      logger.error(e);
+    });
+
+    return res.json({ images: images });
+  }
+);
+
+app.get(
+  "/api/images/byname/:name/stable",
+  async (req: any, res: { json: (arg0: { images: any }) => void }) => {
+    let images = await prisma.Images.findMany({
+      where: {
+        name: req.params.name,
+        stable: true,
+      },
+      orderBy: {
+        name: "asc",
+      },
+    }).catch((e: any) => {
+      logger.error(e);
+    });
+
+    return res.json({ images: images });
   }
 );
 
 app.listen(port, () => {
-  console.log(`Listening to requests on port ${port}`);
+  logger.info(`Listening to requests on port ${port}`);
 });
 
 // function to update the lastUpdated time
@@ -72,8 +170,42 @@ app.listen(port, () => {
 
 async function update_images() {
   if (!octokit) {
-    console.error("Octokit not initialized");
+    logger.error("Octokit not initialized");
     setTimeout(update_images, 60 * 60 * 1000);
+    return;
+  }
+
+  let last_updated_over_an_hour_ago = true;
+  // see if there is a last updated time, and if so if the time is in the last 60 minutes
+  // we'll skip the update if the last update was in the last 60 minutes
+  await prisma.lastUpdated
+    .findMany({
+      take: 1,
+      orderBy: {
+        time: "desc",
+      },
+    })
+    .then((lastUpdated: any) => {
+      if (lastUpdated.length > 0) {
+        const lastUpdatedTime = new Date(lastUpdated[0].time);
+        const currentTime = new Date();
+        // diff in hours
+        const diff =
+          (currentTime.getTime() - lastUpdatedTime.getTime()) / 1000 / 60;
+        logger.info("Last updated " + Math.floor(diff) + " minutes ago");
+        if (diff < 60) {
+          logger.info(
+            "Skipping update. Last updated less than 60 minutes ago. Rechecking in approxmiately " +
+              Math.floor(60 - diff) +
+              " minutes"
+          );
+          setTimeout(update_images, (60 - diff) * 60 * 1000);
+          last_updated_over_an_hour_ago = false;
+        }
+      }
+    });
+
+  if (!last_updated_over_an_hour_ago) {
     return;
   }
 
@@ -87,7 +219,7 @@ async function update_images() {
 
   // show the rate limit
   const rateLimit = await octokit.request("GET /rate_limit");
-  console.log("Rate Limit " + rateLimit.data.resources.core.limit);
+  logger.info("Rate Limit " + rateLimit.data.resources.core.limit);
 
   let repos = await octokit.paginate("GET /orgs/{org}/repos", {
     org: "sdr-enthusiasts",
@@ -108,11 +240,81 @@ async function update_images() {
     );
 
     if (data.length > 0) {
-      console.log(`Updating ${repo.name} with ${data} images`);
+      /*  id    Int     @id @default(autoincrement())
+          name  String
+          url   String
+          modified_date  DateTime @updatedAt
+          created_date   DateTime @default(now())
+          tag  String
+          release_notes String
+          stable Boolean
+          is_pinned_version Boolean*/
+      // search through the tags and find latest-build-*
+      // if latest-build-* is found, we'll use that otherwise, we'll use latest
+      let image_tag = "latest";
+      let is_pinned_version = false;
+      for (const tag of data) {
+        if (tag.includes("latest-build-")) {
+          image_tag = tag;
+          is_pinned_version = true;
+          break;
+        }
+      }
+
+      let name = repo.name;
+      let url = `ghcr.io/sdr-enthusiasts/${repo.name}:${image_tag}`;
+      let modified_date = new Date(); // FIXME: we should get the modified date from the API
+      let created_date = new Date();
+      let release_notes = "No release notes available";
+      let stable = false;
+
+      logger.info("Checking for " + name + ":" + image_tag);
+
+      // lets see if we already have this image in the database
+      let existing_image = false;
+      await prisma.Images.findMany({
+        where: {
+          name: name,
+          tag: image_tag,
+        },
+      })
+        .then((images: any) => {
+          if (images.length > 0) {
+            for (const image of images) {
+              if (image.tag === image_tag) {
+                existing_image = true;
+              }
+            }
+          }
+        })
+        .catch((e: any) => {
+          logger.error(e);
+        });
+
+      if (existing_image) {
+        // if the existing image is not stable and the new image is stable
+        // then we'll update the existing image
+        // TODO: skip for now
+        logger.info("Image already exists");
+      } else {
+        // if the image doesn't exist, we'll create it
+        await prisma.Images.create({
+          data: {
+            name: name,
+            url: url,
+            modified_date: modified_date,
+            created_date: created_date,
+            tag: image_tag,
+            release_notes: release_notes,
+            stable: stable,
+            is_pinned_version: is_pinned_version,
+          },
+        });
+      }
     }
   }
 
-  console.log("Done");
+  logger.info("Done");
   setTimeout(update_images, 60 * 60 * 1000);
 }
 
@@ -131,7 +333,7 @@ async function getPaginatedData(url: String) {
         },
       })
       .catch((e_: any) => {
-        console.log(`No packages for ${url}`);
+        logger.info(`No packages for ${url}`);
         continue_getting_data = false;
       });
 
@@ -207,7 +409,7 @@ main()
     await prisma.$disconnect();
   })
   .catch(async (e) => {
-    console.error(e);
+    logger.error(e);
     await prisma.$disconnect();
     process.exit(1);
   });
