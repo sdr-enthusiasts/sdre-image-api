@@ -48,7 +48,7 @@ const IGNORED_REPOS = [
 const logger = winston.createLogger({
   level: "info",
   format: winston.format.json(),
-  defaultMeta: { service: "user-service" },
+  defaultMeta: { service: "SDR Image API" },
 });
 
 if (process.env.NODE_ENV !== "production") {
@@ -83,7 +83,7 @@ app.get(
         }
       })
       .catch((e: any) => {
-        logger.error(e);
+        logger.error(e, { service: "SDR API /api/last-updated" });
       });
 
     return res.json({ lastUpdated: lastUpdatedOutput || "never" });
@@ -192,7 +192,9 @@ async function update_images() {
         // diff in hours
         const diff =
           (currentTime.getTime() - lastUpdatedTime.getTime()) / 1000 / 60;
-        logger.info("Last updated " + Math.floor(diff) + " minutes ago");
+        logger.info("Last updated " + Math.floor(diff) + " minutes ago", {
+          service: "Update Images",
+        });
         if (diff < 60) {
           logger.info(
             "Skipping update. Last updated less than 60 minutes ago. Rechecking in approxmiately " +
