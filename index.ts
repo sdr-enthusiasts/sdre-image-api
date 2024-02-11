@@ -45,24 +45,51 @@ const IGNORED_REPOS = [
   "rbfeeder",
 ];
 
+let alignColorsAndTime = winston.format.combine(
+  winston.format.colorize({
+    all: true,
+  }),
+  winston.format.label({
+    label: "[IMAGE API]",
+  }),
+  winston.format.timestamp({
+    format: "YY-MM-DD HH:mm:ss",
+  }),
+  winston.format.printf(
+    (info: any) =>
+      `${info.label}[${info.timestamp}][${info.service}][${info.level}] ${info.message}`
+  )
+);
+
 const logger = winston.createLogger({
   level: "info",
-  format: winston.format.json(),
+  transports: [
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.colorize(),
+        alignColorsAndTime
+      ),
+    }),
+  ],
   defaultMeta: { service: "SDR Image API" },
 });
 
 if (process.env.NODE_ENV !== "production") {
-  logger.add(
-    new winston.transports.Console({
-      format: winston.format.simple(),
-    })
-  );
-} else {
-  logger.add(
-    new winston.transports.File({ filename: "error.log", level: "error" })
-  );
+  logger.level = "debug";
+}
 
-  logger.add(new winston.transports.File({ filename: "combined.log" }));
+if (process.env.LOG_LEVEL) {
+  // if the log level is set, we'll use that
+  // but verify it's a valid log level
+  if (
+    ["error", "warn", "info", "http", "verbose", "debug", "silly"].includes(
+      process.env.LOG_LEVEL
+    )
+  ) {
+    logger.level = process.env.LOG_LEVEL;
+  } else if ([0, 1, 2, 3, 4, 5, 6].includes(parseInt(process.env.LOG_LEVEL))) {
+    logger.level = process.env.LOG_LEVEL;
+  }
 }
 
 app.get(
@@ -92,7 +119,7 @@ app.get(
 
 app.get(
   "/api/images/all",
-  async (req: any, res: { json: (arg0: { images: any }) => void }) => {
+  async (req_: any, res: { json: (arg0: { images: any }) => void }) => {
     let images = await prisma.Images.findMany({
       orderBy: {
         name: "asc",
@@ -159,18 +186,13 @@ app.get(
     return res.json({ images: images });
   }
 );
-
-app.listen(port, () => {
-  logger.info(`Listening to requests on port ${port}`);
-});
-
 // function to update the lastUpdated time
 // Should run at first start of the server
 // and then every 60 minutes
 
 async function update_images() {
   if (!octokit) {
-    logger.error("Octokit not initialized");
+    logger.error("Octokit not initialized", { service: "Update Images" });
     setTimeout(update_images, 60 * 60 * 1000);
     return;
   }
@@ -199,7 +221,8 @@ async function update_images() {
           logger.info(
             "Skipping update. Last updated less than 60 minutes ago. Rechecking in approxmiately " +
               Math.floor(60 - diff) +
-              " minutes"
+              " minutes",
+            { service: "Update Images" }
           );
           setTimeout(update_images, (60 - diff) * 60 * 1000);
           last_updated_over_an_hour_ago = false;
@@ -270,8 +293,6 @@ async function update_images() {
       let release_notes = "No release notes available";
       let stable = false;
 
-      logger.info("Checking for " + name + ":" + image_tag);
-
       // lets see if we already have this image in the database
       let existing_image = false;
       await prisma.Images.findMany({
@@ -297,9 +318,14 @@ async function update_images() {
         // if the existing image is not stable and the new image is stable
         // then we'll update the existing image
         // TODO: skip for now
-        logger.info("Image already exists");
+        logger.debug("Skipping update for " + name + ":" + image_tag, {
+          service: "Update Images",
+        });
       } else {
         // if the image doesn't exist, we'll create it
+        logger.info(`Creating ${name}:${image_tag}`, {
+          service: "Update Images",
+        });
         await prisma.Images.create({
           data: {
             name: name,
@@ -316,7 +342,7 @@ async function update_images() {
     }
   }
 
-  logger.info("Done");
+  logger.info("Done checking for updates", { service: "Update Images" });
   setTimeout(update_images, 60 * 60 * 1000);
 }
 
@@ -403,12 +429,22 @@ function parseData(data: any) {
 
 async function main() {
   octokit = await octo_app.getInstallationOctokit(46970787);
+  logger.info("Logger level set to " + logger.level);
+  app.listen(port, () => {
+    logger.info(`Listening to requests on port ${port}`);
+  });
   await update_images();
+
+  const sleep = require("util").promisify(setTimeout);
+  while (true) {
+    // keep the program running
+    await sleep(100000);
+  }
 }
 
 main()
   .then(async () => {
-    await prisma.$disconnect();
+    exit();
   })
   .catch(async (e) => {
     logger.error(e);
@@ -416,4 +452,15 @@ main()
     process.exit(1);
   });
 
-//export {};
+process.on("SIGINT", () => exit()); // CTRL+C
+process.on("SIGQUIT", () => exit()); // Keyboard quit
+process.on("SIGTERM", () => exit()); // `kill` command
+
+async function exit() {
+  await prisma.$disconnect().catch((e: any) => {
+    logger.error(e);
+    process.exit(1);
+  });
+  logger.info("Exiting");
+  process.exit(0);
+}
