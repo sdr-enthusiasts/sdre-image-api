@@ -4,6 +4,7 @@
 // Permission is granted to use, copy, modify, and redistribute the work.
 // Full license information available in the project LICENSE file.
 
+const API_VERSION = "v1";
 const express = require("express");
 const { PrismaClient } = require("@prisma/client");
 const { Octokit, App } = require("octokit");
@@ -74,7 +75,7 @@ if (process.env.LOG_LEVEL !== undefined) {
 
 app.get(
   "/api/v1/last-updated",
-  async (req: any, res: { json: (arg0: { lastUpdated: any }) => void }) => {
+  async (_req: any, res: { json: (arg0: { lastUpdated: any }) => void }) => {
     let lastUpdatedOutput = null;
 
     await prisma.lastUpdated
@@ -99,7 +100,7 @@ app.get(
 
 app.get(
   "/api/v1/images/all",
-  async (req_: any, res: { json: (arg0: { images: any }) => void }) => {
+  async (_req: any, res: { json: (arg0: { images: any }) => void }) => {
     let images = await prisma.Images.findMany({
       orderBy: {
         name: "asc",
@@ -114,7 +115,7 @@ app.get(
 
 app.get(
   "/api/v1/images/all/stable",
-  async (req: any, res: { json: (arg0: { images: any }) => void }) => {
+  async (_req: any, res: { json: (arg0: { images: any }) => void }) => {
     let images = await prisma.Images.findMany({
       where: {
         stable: true,
@@ -130,7 +131,7 @@ app.get(
   }
 );
 
-app.get("/api/v1/images/all/recommended", async (req: any, res: any) => {
+app.get("/api/v1/images/all/recommended", async (_req: any, res: any) => {
   let images = await prisma.Images.findMany({
     orderBy: {
       name: "asc",
@@ -313,7 +314,7 @@ async function update_images() {
         }
       }
     })
-    .catch((e: any) => {
+    .catch((_e: any) => {
       logger.warn("No last updated time found", { service: "Update Images" });
     });
 
@@ -450,7 +451,7 @@ async function getPaginatedData(url: String) {
           "X-GitHub-Api-Version": "2022-11-28",
         },
       })
-      .catch((e_: any) => {
+      .catch((_e: any) => {
         logger.info(`No packages for ${url}`);
         continue_getting_data = false;
       });
