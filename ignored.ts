@@ -1,0 +1,28 @@
+const IGNORED_REPOSITORIES = [
+  "sdre-bias-t-common",
+  "sdr-e-base-repo-setup",
+  "S6-v3-Examples",
+  "acars-bridge",
+  "install-libsdrplay",
+  "sdre-rust-adsb-parser",
+  "sdre-stubborn-io",
+  "FlightAirMap",
+  "sdre-rust-logging",
+  "adsb_parser",
+  "docker-ais-dispatcher",
+  "docker-shipxplorer",
+  "readsb-router",
+  "docker-virtualradarserver",
+  "sdr-enthusiast-assets",
+  "docker-baseimage",
+  "docker-ModeSMixer2",
+  "gitbook-adsb-guide",
+  "plane-alert-db",
+  "docker-acarshub-baseimage",
+  "Buster-Docker-Fixes",
+  "docker-install",
+  "docker-jaero",
+  "rbfeeder",
+];
+
+module.exports = IGNORED_REPOSITORIES;

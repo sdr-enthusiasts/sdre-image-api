@@ -8,6 +8,7 @@ const express = require("express");
 const { PrismaClient } = require("@prisma/client");
 const { Octokit, App } = require("octokit");
 const winston = require("winston");
+const { IGNORED_REPOS } = require("./ignored");
 const app = express();
 const port = process.env.PORT || 3000;
 const prisma = new PrismaClient();
@@ -17,33 +18,6 @@ const octo_app = new App({
 });
 
 let octokit: any = null;
-
-const IGNORED_REPOS = [
-  "sdre-bias-t-common",
-  "sdr-e-base-repo-setup",
-  "S6-v3-Examples",
-  "acars-bridge",
-  "install-libsdrplay",
-  "sdre-rust-adsb-parser",
-  "sdre-stubborn-io",
-  "FlightAirMap",
-  "sdre-rust-logging",
-  "adsb_parser",
-  "docker-ais-dispatcher",
-  "docker-shipxplorer",
-  "readsb-router",
-  "docker-virtualradarserver",
-  "sdr-enthusiast-assets",
-  "docker-baseimage",
-  "docker-ModeSMixer2",
-  "gitbook-adsb-guide",
-  "plane-alert-db",
-  "docker-acarshub-baseimage",
-  "Buster-Docker-Fixes",
-  "docker-install",
-  "docker-jaero",
-  "rbfeeder",
-];
 
 let alignColorsAndTime = winston.format.combine(
   winston.format.colorize({
@@ -93,7 +67,7 @@ if (process.env.LOG_LEVEL) {
 }
 
 app.get(
-  "/api/last-updated",
+  "/api/v1/last-updated",
   async (req: any, res: { json: (arg0: { lastUpdated: any }) => void }) => {
     let lastUpdatedOutput = null;
 
@@ -110,7 +84,7 @@ app.get(
         }
       })
       .catch((e: any) => {
-        logger.error(e, { service: "SDR API /api/last-updated" });
+        logger.error(e, { service: "SDR API /api/v1/last-updated" });
       });
 
     return res.json({ lastUpdated: lastUpdatedOutput || "never" });
@@ -118,7 +92,7 @@ app.get(
 );
 
 app.get(
-  "/api/images/all",
+  "/api/v1/images/all",
   async (req_: any, res: { json: (arg0: { images: any }) => void }) => {
     let images = await prisma.Images.findMany({
       orderBy: {
@@ -133,7 +107,7 @@ app.get(
 );
 
 app.get(
-  "/api/images/byname/:name",
+  "/api/v1/images/byname/:name",
   async (req: any, res: { json: (arg0: { images: any }) => void }) => {
     let images = await prisma.Images.findMany({
       where: {
@@ -151,7 +125,7 @@ app.get(
 );
 
 app.get(
-  "/api/images/all/stable",
+  "/api/v1/images/all/stable",
   async (req: any, res: { json: (arg0: { images: any }) => void }) => {
     let images = await prisma.Images.findMany({
       where: {
@@ -169,7 +143,7 @@ app.get(
 );
 
 app.get(
-  "/api/images/byname/:name/stable",
+  "/api/v1/images/byname/:name/stable",
   async (req: any, res: { json: (arg0: { images: any }) => void }) => {
     let images = await prisma.Images.findMany({
       where: {
