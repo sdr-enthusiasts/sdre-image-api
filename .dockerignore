@@ -1,0 +1,7 @@
+prisma/test.db
+*.pem
+*.env
+.git
+.gitignore
+node_modules
+.github

@@ -8,7 +8,7 @@ const express = require("express");
 const { PrismaClient } = require("@prisma/client");
 const { Octokit, App } = require("octokit");
 const winston = require("winston");
-const { IGNORED_REPOS } = require("./ignored");
+const IGNORED_REPOS = require("./ignored.js");
 const app = express();
 const port = process.env.PORT || 3000;
 const prisma = new PrismaClient();
@@ -52,7 +52,8 @@ if (process.env.NODE_ENV !== "production") {
   logger.level = "debug";
 }
 
-if (process.env.LOG_LEVEL) {
+if (process.env.LOG_LEVEL !== undefined) {
+  logger.info("Log level inputted as " + process.env.LOG_LEVEL);
   // if the log level is set, we'll use that
   // but verify it's a valid log level
   if (
@@ -63,6 +64,11 @@ if (process.env.LOG_LEVEL) {
     logger.level = process.env.LOG_LEVEL;
   } else if ([0, 1, 2, 3, 4, 5, 6].includes(parseInt(process.env.LOG_LEVEL))) {
     logger.level = process.env.LOG_LEVEL;
+  } else {
+    logger.error("Invalid log level set. Defaulting to info", {
+      service: "SDR Image API",
+    });
+    logger.level = "info";
   }
 }
 
@@ -107,6 +113,80 @@ app.get(
 );
 
 app.get(
+  "/api/v1/images/all/stable",
+  async (req: any, res: { json: (arg0: { images: any }) => void }) => {
+    let images = await prisma.Images.findMany({
+      where: {
+        stable: true,
+      },
+      orderBy: {
+        name: "asc",
+      },
+    }).catch((e: any) => {
+      logger.error(e);
+    });
+
+    return res.json({ images: images });
+  }
+);
+
+app.get("/api/v1/images/all/recommended", async (req: any, res: any) => {
+  let images = await prisma.Images.findMany({
+    orderBy: {
+      name: "asc",
+    },
+  }).catch((e: any) => {
+    logger.error(e);
+  });
+
+  // We only want to return the latest stable image for each name
+  // if there are no stable images, we'll return the latest image
+
+  let recommendedImages: any = [];
+
+  let names: any = [];
+
+  for (const image of images) {
+    if (!names.includes(image.name)) {
+      names.push(image.name);
+    }
+  }
+
+  for (const name of names) {
+    let latestImage = null;
+
+    // find all the images with the same name
+    const sortedImages = images.filter((image: any) => image.name === name);
+
+    for (const nameImage of sortedImages) {
+      if (nameImage.name === name) {
+        if (latestImage === null) {
+          latestImage = nameImage;
+        } else {
+          if (nameImage.stable && !latestImage.stable) {
+            latestImage = nameImage;
+          } else if (nameImage.stable && latestImage.stable) {
+            if (nameImage.modified_date > latestImage.modified_date) {
+              latestImage = nameImage;
+            }
+          } else if (!nameImage.stable && !latestImage.stable) {
+            if (nameImage.modified_date > latestImage.modified_date) {
+              latestImage = nameImage;
+            }
+          }
+        }
+      }
+    }
+
+    if (latestImage) {
+      recommendedImages.push(latestImage);
+    }
+  }
+
+  return res.json({ images: recommendedImages });
+});
+
+app.get(
   "/api/v1/images/byname/:name",
   async (req: any, res: { json: (arg0: { images: any }) => void }) => {
     let images = await prisma.Images.findMany({
@@ -125,11 +205,11 @@ app.get(
 );
 
 app.get(
-  "/api/v1/images/all/stable",
-  async (req: any, res: { json: (arg0: { images: any }) => void }) => {
+  "/api/v1/images/byname/:name/recommended",
+  async (req: any, res: any) => {
     let images = await prisma.Images.findMany({
       where: {
-        stable: true,
+        name: req.params.name,
       },
       orderBy: {
         name: "asc",
@@ -138,7 +218,36 @@ app.get(
       logger.error(e);
     });
 
-    return res.json({ images: images });
+    // We only want to return the latest stable image for each name
+    // if there are no stable images, we'll return the latest image
+
+    let recommendedImages: any = [];
+
+    let latestImage = null;
+
+    for (const image of images) {
+      if (latestImage === null) {
+        latestImage = image;
+      } else {
+        if (image.stable && !latestImage.stable) {
+          latestImage = image;
+        } else if (image.stable && latestImage.stable) {
+          if (image.modified_date > latestImage.modified_date) {
+            latestImage = image;
+          }
+        } else if (!image.stable && !latestImage.stable) {
+          if (image.modified_date > latestImage.modified_date) {
+            latestImage = image;
+          }
+        }
+      }
+    }
+
+    if (latestImage) {
+      recommendedImages.push(latestImage);
+    }
+
+    return res.json({ images: recommendedImages });
   }
 );
 
@@ -160,6 +269,7 @@ app.get(
     return res.json({ images: images });
   }
 );
+
 // function to update the lastUpdated time
 // Should run at first start of the server
 // and then every 60 minutes
@@ -202,6 +312,9 @@ async function update_images() {
           last_updated_over_an_hour_ago = false;
         }
       }
+    })
+    .catch((e: any) => {
+      logger.warn("No last updated time found", { service: "Update Images" });
     });
 
   if (!last_updated_over_an_hour_ago) {
@@ -209,7 +322,10 @@ async function update_images() {
   }
 
   // replace the current lastUpdated with the current time
-  await prisma.lastUpdated.deleteMany({});
+  await prisma.lastUpdated.deleteMany({}).catch((e: any) => {
+    logger.error(e);
+  });
+
   await prisma.lastUpdated.create({
     data: {
       time: new Date(),
@@ -230,7 +346,7 @@ async function update_images() {
   });
 
   for (const repo of repos) {
-    if (IGNORED_REPOS.includes(repo.name)) {
+    if (IGNORED_REPOS !== undefined && IGNORED_REPOS.includes(repo.name)) {
       continue;
     }
 
@@ -421,7 +537,7 @@ main()
     exit();
   })
   .catch(async (e) => {
-    logger.error(e);
+    logger.error(`Error in main: ${e}`);
     await prisma.$disconnect();
     process.exit(1);
   });

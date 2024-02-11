@@ -2,9 +2,10 @@
   "name": "sdre-image-api",
   "version": "0.1.0",
   "description": "",
-  "main": "index.js",
+  "main": "index.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc && tsc-alias",
+    "start": "npx prisma migrate deploy && node dist/index.js"
   },
   "author": "Fred Clausen",
   "license": "MIT",
@@ -15,9 +16,10 @@
     "winston": "^3.11.0"
   },
   "devDependencies": {
-    "@types/node": "^20.11.16",
+    "@types/node": "^20.11.17",
     "prisma": "^5.9.1",
     "ts-node": "^10.9.2",
+    "tsc-alias": "^1.8.8",
     "typescript": "^5.3.3"
   }
 }
