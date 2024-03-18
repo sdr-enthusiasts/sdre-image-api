@@ -4,10 +4,12 @@
 // Permission is granted to use, copy, modify, and redistribute the work.
 // Full license information available in the project LICENSE file.
 
+import { Logger } from "../node_modules/winston/index";
+
 const API_VERSION = "v1";
 const express = require("express");
 const { PrismaClient } = require("@prisma/client");
-const { Octokit, App } = require("octokit");
+const { App, EndPoints } = require("octokit");
 const winston = require("winston");
 const IGNORED_REPOS = require("./ignored.js");
 const app = express();
@@ -36,7 +38,7 @@ let alignColorsAndTime = winston.format.combine(
   )
 );
 
-const logger = winston.createLogger({
+const logger: Logger = winston.createLogger({
   level: "info",
   transports: [
     new winston.transports.Console({
