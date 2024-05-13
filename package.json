@@ -16,7 +16,7 @@
     "winston": "^3.13.0"
   },
   "devDependencies": {
-    "@types/node": "^20.11.17",
+    "@types/node": "^20.12.11",
     "@types/winston": "^2.4.4",
     "prisma": "^5.13.0",
     "ts-node": "^10.9.2",
