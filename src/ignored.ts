@@ -25,4 +25,5 @@ export const IGNORED_REPOS = [
   "rbfeeder",
   "acars-guide",
   "multifeeder",
+  "sdre-image-api",
 ];
