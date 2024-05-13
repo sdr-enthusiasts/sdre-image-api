@@ -1,4 +1,4 @@
-const IGNORED_REPOSITORIES = [
+export const IGNORED_REPOS = [
   "sdre-bias-t-common",
   "sdr-e-base-repo-setup",
   "S6-v3-Examples",
@@ -23,6 +23,5 @@ const IGNORED_REPOSITORIES = [
   "docker-install",
   "docker-jaero",
   "rbfeeder",
+  "acars-guide",
 ];
-
-module.exports = IGNORED_REPOSITORIES;

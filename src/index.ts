@@ -4,20 +4,23 @@
 // Permission is granted to use, copy, modify, and redistribute the work.
 // Full license information available in the project LICENSE file.
 
-import { Logger } from "../node_modules/winston/index";
-
-const API_VERSION = "v1";
-const express = require("express");
-const { PrismaClient } = require("@prisma/client");
-const { App, EndPoints } = require("octokit");
-const winston = require("winston");
-const IGNORED_REPOS = require("./ignored.js");
+import express from "express";
+import { PrismaClient } from "@prisma/client";
+import { App } from "octokit";
+import winston from "winston";
+import * as fs from "fs";
+import * as util from "util";
+import { IGNORED_REPOS } from "./ignored.js";
 const app = express();
 const port = process.env.PORT || 3000;
 const prisma = new PrismaClient();
+
+let APP_ID = process.env.APP_ID || process.exit(1);
+let API_KEY = process.env.API_KEY || process.exit(1);
+
 const octo_app = new App({
-  appId: process.env.APP_ID,
-  privateKey: require("fs").readFileSync(process.env.API_KEY).toString(),
+  appId: APP_ID,
+  privateKey: fs.readFileSync(API_KEY).toString(),
 });
 
 let octokit: any = null;
@@ -38,8 +41,8 @@ let alignColorsAndTime = winston.format.combine(
   )
 );
 
-const logger: Logger = winston.createLogger({
-  level: "info",
+const logger = winston.createLogger({
+  level: process.env.NODE_ENV !== "production" ? "debug" : "info",
   transports: [
     new winston.transports.Console({
       format: winston.format.combine(
@@ -50,10 +53,6 @@ const logger: Logger = winston.createLogger({
   ],
   defaultMeta: { service: "SDR Image API" },
 });
-
-if (process.env.NODE_ENV !== "production") {
-  logger.level = "debug";
-}
 
 if (process.env.LOG_LEVEL !== undefined) {
   logger.info("Log level inputted as " + process.env.LOG_LEVEL);
@@ -103,13 +102,15 @@ app.get(
 app.get(
   "/api/v1/images/all",
   async (_req: any, res: { json: (arg0: { images: any }) => void }) => {
-    let images = await prisma.Images.findMany({
-      orderBy: {
-        name: "asc",
-      },
-    }).catch((e: any) => {
-      logger.error(e);
-    });
+    let images = await prisma.images
+      .findMany({
+        orderBy: {
+          name: "asc",
+        },
+      })
+      .catch((e: any) => {
+        logger.error(e);
+      });
 
     return res.json({ images: images });
   }
@@ -118,29 +119,38 @@ app.get(
 app.get(
   "/api/v1/images/all/stable",
   async (_req: any, res: { json: (arg0: { images: any }) => void }) => {
-    let images = await prisma.Images.findMany({
-      where: {
-        stable: true,
-      },
-      orderBy: {
-        name: "asc",
-      },
-    }).catch((e: any) => {
-      logger.error(e);
-    });
+    let images = await prisma.images
+      .findMany({
+        where: {
+          stable: true,
+        },
+        orderBy: {
+          name: "asc",
+        },
+      })
+      .catch((e: any) => {
+        logger.error(e);
+      });
 
     return res.json({ images: images });
   }
 );
 
 app.get("/api/v1/images/all/recommended", async (_req: any, res: any) => {
-  let images = await prisma.Images.findMany({
-    orderBy: {
-      name: "asc",
-    },
-  }).catch((e: any) => {
-    logger.error(e);
-  });
+  let images = await prisma.images
+    .findMany({
+      orderBy: {
+        name: "asc",
+      },
+    })
+    .catch((e: any) => {
+      logger.error(e);
+    });
+
+  // verify images is not void, and isn't empty
+  if (images === undefined || images.length === 0) {
+    return res.json({ images: [] });
+  }
 
   // We only want to return the latest stable image for each name
   // if there are no stable images, we'll return the latest image
@@ -192,16 +202,18 @@ app.get("/api/v1/images/all/recommended", async (_req: any, res: any) => {
 app.get(
   "/api/v1/images/byname/:name",
   async (req: any, res: { json: (arg0: { images: any }) => void }) => {
-    let images = await prisma.Images.findMany({
-      where: {
-        name: req.params.name,
-      },
-      orderBy: {
-        name: "asc",
-      },
-    }).catch((e: any) => {
-      logger.error(e);
-    });
+    let images = await prisma.images
+      .findMany({
+        where: {
+          name: req.params.name,
+        },
+        orderBy: {
+          name: "asc",
+        },
+      })
+      .catch((e: any) => {
+        logger.error(e);
+      });
 
     return res.json({ images: images });
   }
@@ -210,16 +222,23 @@ app.get(
 app.get(
   "/api/v1/images/byname/:name/recommended",
   async (req: any, res: any) => {
-    let images = await prisma.Images.findMany({
-      where: {
-        name: req.params.name,
-      },
-      orderBy: {
-        name: "asc",
-      },
-    }).catch((e: any) => {
-      logger.error(e);
-    });
+    let images = await prisma.images
+      .findMany({
+        where: {
+          name: req.params.name,
+        },
+        orderBy: {
+          name: "asc",
+        },
+      })
+      .catch((e: any) => {
+        logger.error(e);
+      });
+
+    // verify images is not void, and isn't empty
+    if (images === undefined || images.length === 0) {
+      return res.json({ images: [] });
+    }
 
     // We only want to return the latest stable image for each name
     // if there are no stable images, we'll return the latest image
@@ -257,17 +276,19 @@ app.get(
 app.get(
   "/api/v1/images/byname/:name/stable",
   async (req: any, res: { json: (arg0: { images: any }) => void }) => {
-    let images = await prisma.Images.findMany({
-      where: {
-        name: req.params.name,
-        stable: true,
-      },
-      orderBy: {
-        name: "asc",
-      },
-    }).catch((e: any) => {
-      logger.error(e);
-    });
+    let images = await prisma.images
+      .findMany({
+        where: {
+          name: req.params.name,
+          stable: true,
+        },
+        orderBy: {
+          name: "asc",
+        },
+      })
+      .catch((e: any) => {
+        logger.error(e);
+      });
 
     return res.json({ images: images });
   }
@@ -388,12 +409,13 @@ async function update_images() {
 
       // lets see if we already have this image in the database
       let existing_image = false;
-      await prisma.Images.findMany({
-        where: {
-          name: name,
-          tag: image_tag,
-        },
-      })
+      await prisma.images
+        .findMany({
+          where: {
+            name: name,
+            tag: image_tag,
+          },
+        })
         .then((images: any) => {
           if (images.length > 0) {
             for (const image of images) {
@@ -419,7 +441,7 @@ async function update_images() {
         logger.info(`Creating ${name}:${image_tag}`, {
           service: "Update Images",
         });
-        await prisma.Images.create({
+        await prisma.images.create({
           data: {
             name: name,
             url: url,
@@ -524,13 +546,12 @@ async function main() {
   octokit = await octo_app.getInstallationOctokit(46970787);
   logger.info("Logger level set to " + logger.level);
   app.listen(port, () => {
-    logger.info(`Listening to requests on port ${port}`);
+    //logger.info(`Listening to requests on port ${port}`);
   });
   await update_images();
-
-  const sleep = require("util").promisify(setTimeout);
   while (true) {
     // keep the program running
+    const sleep = util.promisify(setTimeout);
     await sleep(100000);
   }
 }

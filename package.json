@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "",
   "main": "index.ts",
+  "type": "module",
   "scripts": {
     "build": "tsc && tsc-alias",
     "start": "npx prisma migrate deploy && node dist/index.js"
@@ -10,12 +11,13 @@
   "author": "Fred Clausen",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.19.2",
     "@prisma/client": "^5.13.0",
+    "express": "^4.19.2",
     "octokit": "^4.0.2",
     "winston": "^3.13.0"
   },
   "devDependencies": {
+    "@types/express": "^4.17.21",
     "@types/node": "^20.12.11",
     "@types/winston": "^2.4.4",
     "prisma": "^5.13.0",
