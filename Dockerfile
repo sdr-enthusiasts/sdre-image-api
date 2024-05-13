@@ -1,4 +1,4 @@
-FROM node:22-bookworm-slim
+FROM node:22.1.0-bookworm-slim
 
 RUN mkdir -p /home/node/app/node_modules && chown -R node:node /home/node/app
 
@@ -19,5 +19,8 @@ RUN npm install && \
     rm -rf src
 
 ENV NODE_ENV=production \
-    PORT=3000
-CMD [ "npm", "run", "start"]
+    PORT=3000 \
+    API_KEY="/opt/api/sdre-e-updater.2024-02-05.private-key.pem" \
+    APP_ID="818428" \
+    DATABASE_URL="file:/opt/api/imageapi.db"
+CMD [ "npm", "run", "start_docker"]

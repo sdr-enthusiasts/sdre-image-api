@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "build": "tsc && tsc-alias",
-    "start": "npx prisma migrate deploy && node dist/index.js"
+    "start": "npx prisma migrate deploy && node --env-file='.env' dist/index.js",
+    "start_docker": "npx prisma migrate deploy && node dist/index.js"
   },
   "author": "Fred Clausen",
   "license": "MIT",

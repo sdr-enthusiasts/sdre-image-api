@@ -15,8 +15,19 @@ const app = express();
 const port = process.env.PORT || 3000;
 const prisma = new PrismaClient();
 
-let APP_ID = process.env.APP_ID || process.exit(1);
-let API_KEY = process.env.API_KEY || process.exit(1);
+let APP_ID = process.env.APP_ID;
+
+if (APP_ID === undefined) {
+  console.error("APP_ID not set. Exiting");
+  process.exit(1);
+}
+
+let API_KEY = process.env.API_KEY;
+
+if (API_KEY === undefined) {
+  console.error("API_KEY not set. Exiting");
+  process.exit(1);
+}
 
 const octo_app = new App({
   appId: APP_ID,
@@ -405,7 +416,7 @@ async function update_images() {
       let modified_date = new Date(); // FIXME: we should get the modified date from the API
       let created_date = new Date();
       let release_notes = "No release notes available";
-      let stable = false;
+      let stable = true;
 
       // lets see if we already have this image in the database
       let existing_image = false;

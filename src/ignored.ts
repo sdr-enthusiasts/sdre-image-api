@@ -24,4 +24,5 @@ export const IGNORED_REPOS = [
   "docker-jaero",
   "rbfeeder",
   "acars-guide",
+  "multifeeder",
 ];
