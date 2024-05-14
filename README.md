@@ -25,6 +25,7 @@ This is an API to query the latest image versions. To run it, you will need a pr
 
 - The API is not public. You will need a private key to run it.
 - Currently, all tagged images when the API detects a change will get marked as `stable`. In the future there will be a way to designate a specific image as `stable`.
+- The API isn't a whole history of images. It's data genesis is from when the API database for the instance was created.
 
 ## TODO
 
