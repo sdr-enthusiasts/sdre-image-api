@@ -21,7 +21,7 @@
     "@types/express": "^5.0.0",
     "@types/node": "^22.10.5",
     "@types/winston": "^2.4.4",
-    "prisma": "^6.1.0",
+    "prisma": "^6.2.1",
     "ts-node": "^10.9.2",
     "tsc-alias": "^1.8.10",
     "typescript": "^5.7.2"
