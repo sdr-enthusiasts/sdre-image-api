@@ -19,7 +19,7 @@
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
-    "@types/node": "22.10.6",
+    "@types/node": "22.10.10",
     "prisma": "6.3.0-integration-simpler-typeinfo-query.1",
     "ts-node": "^10.9.2",
     "tsc-alias": "^1.8.10",
