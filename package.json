@@ -12,7 +12,7 @@
   "author": "Fred Clausen",
   "license": "MIT",
   "dependencies": {
-    "@prisma/client": "^6.3.1",
+    "@prisma/client": "^6.4.1",
     "express": "5.0.1",
     "octokit": "^4.1.2",
     "winston": "^3.17.0"
