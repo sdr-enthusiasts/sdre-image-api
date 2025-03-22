@@ -12,15 +12,15 @@
   "author": "Fred Clausen",
   "license": "MIT",
   "dependencies": {
-    "@prisma/client": "^6.4.1",
+    "@prisma/client": "^6.5.0",
     "express": "5.0.1",
     "octokit": "^4.1.2",
     "winston": "^3.17.0"
   },
   "devDependencies": {
-    "@types/express": "^5.0.0",
-    "@types/node": "^22.13.8",
-    "prisma": "^6.4.1",
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.13.11",
+    "prisma": "^6.5.0",
     "ts-node": "^10.9.2",
     "tsc-alias": "^1.8.11",
     "typescript": "^5.8.2"
