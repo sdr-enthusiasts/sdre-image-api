@@ -23,6 +23,6 @@
     "prisma": "^6.5.0",
     "ts-node": "^10.9.2",
     "tsc-alias": "^1.8.13",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.3"
   }
 }
