@@ -1,4 +1,4 @@
-FROM node:23.11.0-bookworm-slim
+FROM node:24.0.2-bookworm-slim
 
 RUN mkdir -p /home/node/app/node_modules && chown -R node:node /home/node/app
 
