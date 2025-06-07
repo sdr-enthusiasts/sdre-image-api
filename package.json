@@ -20,7 +20,7 @@
   "devDependencies": {
     "@types/express": "^5.0.2",
     "@types/node": "^22.15.18",
-    "prisma": "^6.8.2",
+    "prisma": "^6.9.0",
     "ts-node": "^10.9.2",
     "tsc-alias": "^1.8.16",
     "typescript": "^5.8.3"
