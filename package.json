@@ -18,7 +18,7 @@
     "winston": "^3.17.0"
   },
   "devDependencies": {
-    "@types/express": "^5.0.2",
+    "@types/express": "^5.0.3",
     "@types/node": "^22.15.18",
     "prisma": "^6.8.2",
     "ts-node": "^10.9.2",
