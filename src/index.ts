@@ -147,6 +147,74 @@ app.get(
   }
 );
 
+app.get(
+  "/api/v1/images/trixie/all/recommended",
+  async (_req: any, res: any) => {
+    let images = await prisma.images
+      .findMany({
+        orderBy: {
+          name: "asc",
+        },
+      })
+      .catch((e: any) => {
+        logger.error(e);
+      });
+
+    // verify images is not void, and isn't empty
+    if (images === undefined || images.length === 0) {
+      return res.json({ images: [] });
+    }
+
+    // We only want to return the latest stable image for each name
+    // if there are no stable images, we'll return the latest image
+
+    let recommendedImages: any = [];
+
+    let names: any = [];
+
+    for (const image of images) {
+      if (!names.includes(image.name)) {
+        names.push(image.name);
+      }
+    }
+
+    for (const name of names) {
+      let latestImage = null;
+
+      // find all the images with the same name
+      const sortedImages = images.filter(
+        (image: any) => image.name === name && image.url_trixie !== ""
+      );
+
+      for (const nameImage of sortedImages) {
+        if (nameImage.name === name) {
+          if (latestImage === null) {
+            latestImage = nameImage;
+          } else {
+            if (nameImage.stable && !latestImage.stable) {
+              latestImage = nameImage;
+            } else if (nameImage.stable && latestImage.stable) {
+              if (nameImage.modified_date > latestImage.modified_date) {
+                latestImage = nameImage;
+              }
+            } else if (!nameImage.stable && !latestImage.stable) {
+              if (nameImage.modified_date > latestImage.modified_date) {
+                latestImage = nameImage;
+              }
+            }
+          }
+        }
+      }
+
+      if (latestImage) {
+        recommendedImages.push(latestImage);
+      }
+    }
+
+    return res.json({ images: recommendedImages });
+  }
+);
+
 app.get("/api/v1/images/all/recommended", async (_req: any, res: any) => {
   let images = await prisma.images
     .findMany({
@@ -227,6 +295,64 @@ app.get(
       });
 
     return res.json({ images: images });
+  }
+);
+
+app.get(
+  "/api/v1/images/trixie/byname/:name/recommended",
+  async (req: any, res: any) => {
+    let images = await prisma.images
+      .findMany({
+        where: {
+          name: req.params.name,
+        },
+        orderBy: {
+          name: "asc",
+        },
+      })
+      .catch((e: any) => {
+        logger.error(e);
+      });
+
+    // verify images is not void, and isn't empty
+    if (images === undefined || images.length === 0) {
+      return res.json({ images: [] });
+    }
+
+    // We only want to return the latest stable image for each name
+    // if there are no stable images, we'll return the latest image
+
+    let recommendedImages: any = [];
+
+    let latestImage = null;
+
+    for (const image of images) {
+      if (image.url_trixie === "") {
+        continue;
+      }
+
+      if (latestImage === null) {
+        latestImage = image;
+      } else {
+        if (image.stable && !latestImage.stable) {
+          latestImage = image;
+        } else if (image.stable && latestImage.stable) {
+          if (image.modified_date > latestImage.modified_date) {
+            latestImage = image;
+          }
+        } else if (!image.stable && !latestImage.stable) {
+          if (image.modified_date > latestImage.modified_date) {
+            latestImage = image;
+          }
+        }
+      }
+    }
+
+    if (latestImage) {
+      recommendedImages.push(latestImage);
+    }
+
+    return res.json({ images: recommendedImages });
   }
 );
 
@@ -418,9 +544,6 @@ async function update_images(skip_wait = false) {
       }
 
       for (const tag of data) {
-        logger.debug("Checking tag " + tag + " for " + repo.name, {
-          service: "Update Images",
-        });
         if (tag.startsWith("trixie-latest-")) {
           image_tag_trixie = tag;
           found_trixie = true;
