@@ -6,3 +6,4 @@ prisma/test.db
 *-journal
 dist
 .DS_Store
+.direnv
