@@ -19,9 +19,11 @@ model Images {
   id    Int     @id @default(autoincrement())
   name  String
   url   String
+  url_trixie String @default("")
   modified_date  DateTime @updatedAt
   created_date   DateTime @default(now())
   tag  String
+  tag_trixie String @default("")
   release_notes String
   stable Boolean
   is_pinned_version Boolean

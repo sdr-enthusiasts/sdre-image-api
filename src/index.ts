@@ -309,7 +309,7 @@ app.get(
 // Should run at first start of the server
 // and then every 60 minutes
 
-async function update_images() {
+async function update_images(skip_wait = false) {
   if (!octokit) {
     logger.error("Octokit not initialized", { service: "Update Images" });
     setTimeout(update_images, 60 * 60 * 1000);
@@ -319,38 +319,41 @@ async function update_images() {
   let last_updated_over_an_hour_ago = true;
   // see if there is a last updated time, and if so if the time is in the last 60 minutes
   // we'll skip the update if the last update was in the last 60 minutes
-  await prisma.lastUpdated
-    .findMany({
-      take: 1,
-      orderBy: {
-        time: "desc",
-      },
-    })
-    .then((lastUpdated: any) => {
-      if (lastUpdated.length > 0) {
-        const lastUpdatedTime = new Date(lastUpdated[0].time);
-        const currentTime = new Date();
-        // diff in hours
-        const diff =
-          (currentTime.getTime() - lastUpdatedTime.getTime()) / 1000 / 60;
-        logger.info("Last updated " + Math.floor(diff) + " minutes ago", {
-          service: "Update Images",
-        });
-        if (diff < 60) {
-          logger.info(
-            "Skipping update. Last updated less than 60 minutes ago. Rechecking in approxmiately " +
-              Math.floor(60 - diff) +
-              " minutes",
-            { service: "Update Images" }
-          );
-          setTimeout(update_images, (60 - diff) * 60 * 1000);
-          last_updated_over_an_hour_ago = false;
+
+  if (!skip_wait) {
+    await prisma.lastUpdated
+      .findMany({
+        take: 1,
+        orderBy: {
+          time: "desc",
+        },
+      })
+      .then((lastUpdated: any) => {
+        if (lastUpdated.length > 0) {
+          const lastUpdatedTime = new Date(lastUpdated[0].time);
+          const currentTime = new Date();
+          // diff in hours
+          const diff =
+            (currentTime.getTime() - lastUpdatedTime.getTime()) / 1000 / 60;
+          logger.info("Last updated " + Math.floor(diff) + " minutes ago", {
+            service: "Update Images",
+          });
+          if (diff < 60) {
+            logger.info(
+              "Skipping update. Last updated less than 60 minutes ago. Rechecking in approximately " +
+                Math.floor(60 - diff) +
+                " minutes",
+              { service: "Update Images" }
+            );
+            setTimeout(update_images, (60 - diff) * 60 * 1000);
+            last_updated_over_an_hour_ago = false;
+          }
         }
-      }
-    })
-    .catch((_e: any) => {
-      logger.warn("No last updated time found", { service: "Update Images" });
-    });
+      })
+      .catch((_e: any) => {
+        logger.warn("No last updated time found", { service: "Update Images" });
+      });
+  }
 
   if (!last_updated_over_an_hour_ago) {
     return;
@@ -402,15 +405,32 @@ async function update_images() {
       // search through the tags and find latest-build-*
       // if latest-build-* is found, we'll use that otherwise, we'll use latest
       let image_tag = "latest";
+      let image_tag_trixie = "trixie-latest";
       let is_pinned_version = false;
+      let found_trixie = false;
+
       for (const tag of data) {
-        if (tag.includes("latest-build-")) {
+        if (tag.startsWith("latest-build-")) {
           image_tag = tag;
           is_pinned_version = true;
           break;
         }
       }
 
+      for (const tag of data) {
+        logger.debug("Checking tag " + tag + " for " + repo.name, {
+          service: "Update Images",
+        });
+        if (tag.startsWith("trixie-latest-")) {
+          image_tag_trixie = tag;
+          found_trixie = true;
+          break;
+        }
+      }
+
+      let url_trixie = found_trixie
+        ? `ghcr.io/sdr-enthusiasts/${repo.name}:${image_tag_trixie}`
+        : "";
       let name = repo.name;
       let url = `ghcr.io/sdr-enthusiasts/${repo.name}:${image_tag}`;
       let modified_date = new Date(); // FIXME: we should get the modified date from the API
@@ -425,6 +445,7 @@ async function update_images() {
           where: {
             name: name,
             tag: image_tag,
+            tag_trixie: found_trixie ? image_tag_trixie : "",
           },
         })
         .then((images: any) => {
@@ -456,9 +477,11 @@ async function update_images() {
           data: {
             name: name,
             url: url,
+            url_trixie: url_trixie,
             modified_date: modified_date,
             created_date: created_date,
             tag: image_tag,
+            tag_trixie: image_tag_trixie,
             release_notes: release_notes,
             stable: stable,
             is_pinned_version: is_pinned_version,
@@ -502,11 +525,11 @@ async function getPaginatedData(url: String) {
         // go through the tags and see if any of them are the latest
         let latest = false;
         for (const tag of element.metadata.container.tags) {
-          if (tag === "latest") {
+          if (tag === "latest" || tag === "trixie-latest") {
             latest = true;
           }
         }
-
+        // if latest is found, we'll only keep that tag
         if (latest) data.push(...element.metadata.container.tags);
       }
     }
@@ -559,7 +582,7 @@ async function main() {
   app.listen(port, () => {
     //logger.info(`Listening to requests on port ${port}`);
   });
-  await update_images();
+  await update_images(true);
   while (true) {
     // keep the program running
     const sleep = util.promisify(setTimeout);

@@ -26,4 +26,5 @@ export const IGNORED_REPOS = [
   "acars-guide",
   "multifeeder",
   "sdre-image-api",
+  "docker-multifeeder",
 ];
