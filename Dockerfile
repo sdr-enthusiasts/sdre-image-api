@@ -1,4 +1,4 @@
-FROM node:24.10.0-trixie-slim
+FROM node:25.1.0-trixie-slim
 
 RUN mkdir -p /home/node/app/node_modules && chown -R node:node /home/node/app
 
