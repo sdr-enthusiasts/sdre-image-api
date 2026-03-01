@@ -4,9 +4,10 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs";
     flake-utils.url = "github:numtide/flake-utils";
+    npm-chck.url = "github:fredsystems/npm-chck";
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
+  outputs = { nixpkgs, flake-utils, npm-chck, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
@@ -18,7 +19,7 @@
             nodePackages_latest.pnpm
             nodePackages_latest.vercel
             nodePackages_latest.prisma
-            npm-check
+            npm-chck.packages.${system}.default
             sqlite
             openssl
           ];
