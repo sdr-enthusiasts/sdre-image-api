@@ -5,5 +5,7 @@ prisma/migrations/migration_lock.toml
 prisma/test.db
 *-journal
 dist
+*.tsbuildinfo
 .DS_Store
 .direnv
+.pre-commit-config.yaml
