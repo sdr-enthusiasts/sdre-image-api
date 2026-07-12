@@ -1,0 +1,14 @@
+services:
+  # Nginx reverse proxy for testing subpath deployment
+  nginx:
+    image: imgtest
+    container_name: imgtest
+    restart: always
+    ports:
+      - 3009:3000
+    volumes:
+      - /home/fred/test-opt:/opt/api
+      - /home/fred/GitHub/fred-config/sdre-e-updater.2024-02-05.private-key.pem:/opt/api/sdre-e-updater.2024-02-05.private-key.pem:ro
+    # environment:
+    #   - API_KEY=/home/fred/GitHub/fred-config/sdre-e-updater.2024-02-05.private-key.pem
+    #   - DATABASE_URL=file:/home/fred/imageapi.db

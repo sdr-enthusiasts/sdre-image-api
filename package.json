@@ -12,7 +12,9 @@
   "author": "Fred Clausen",
   "license": "MIT",
   "dependencies": {
+    "@prisma/adapter-better-sqlite3": "^7.8.0",
     "@prisma/client": "7.8.0",
+    "@prisma/client-runtime-utils": "^7.8.0",
     "express": "^5.2.1",
     "octokit": "^5.0.5",
     "winston": "^3.19.0"
@@ -24,5 +26,10 @@
     "ts-node": "^10.9.2",
     "tsc-alias": "1.9.0",
     "typescript": "7.0.2"
+  },
+  "allowScripts": {
+    "@prisma/engines@7.8.0": true,
+    "better-sqlite3@12.11.1": true,
+    "prisma@7.8.0": true
   }
 }

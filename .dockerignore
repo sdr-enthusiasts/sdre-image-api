@@ -5,3 +5,7 @@ prisma/test.db
 .gitignore
 node_modules
 .github
+.direnv
+source-stubs
+.pre-commit-config.yaml
+.envrc
