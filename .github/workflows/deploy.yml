@@ -9,7 +9,7 @@ on:
         description: "Reason for running this workflow"
   push:
     branches:
-      - main
+      - master
     # Don't trigger if it's just a documentation update
     paths:
       - "rust/**"
