@@ -13,7 +13,7 @@
   "license": "MIT",
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.8.0",
-    "@prisma/client": "7.8.0",
+    "@prisma/client": "7.9.0",
     "@prisma/client-runtime-utils": "^7.8.0",
     "express": "^5.2.1",
     "octokit": "^5.0.5",
@@ -22,7 +22,7 @@
   "devDependencies": {
     "@types/express": "5.0.6",
     "@types/node": "26.1.1",
-    "prisma": "7.8.0",
+    "prisma": "7.9.0",
     "ts-node": "10.9.2",
     "tsc-alias": "1.9.0",
     "typescript": "7.0.2"
