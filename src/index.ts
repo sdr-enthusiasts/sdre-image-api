@@ -308,26 +308,29 @@ app.get(
   },
 );
 
-app.get("/api/v1/images/byname/:name", async (req: Request, res: Response) => {
-  const images = await prisma.images
-    .findMany({
-      where: {
-        name: req.params.name,
-      },
-      orderBy: {
-        name: "asc",
-      },
-    })
-    .catch((e) => {
-      logger.error(e);
-    });
+app.get(
+  "/api/v1/images/byname/:name",
+  async (req: Request<{ name: string }>, res: Response) => {
+    const images = await prisma.images
+      .findMany({
+        where: {
+          name: req.params.name,
+        },
+        orderBy: {
+          name: "asc",
+        },
+      })
+      .catch((e) => {
+        logger.error(e);
+      });
 
-  res.json({ images: images });
-});
+    res.json({ images: images });
+  },
+);
 
 app.get(
   "/api/v1/images/trixie/byname/:name/recommended",
-  async (req: Request, res: Response) => {
+  async (req: Request<{ name: string }>, res: Response) => {
     const images = await prisma.images
       .findMany({
         where: {
@@ -386,7 +389,7 @@ app.get(
 
 app.get(
   "/api/v1/images/byname/:name/recommended",
-  async (req: Request, res: Response) => {
+  async (req: Request<{ name: string }>, res: Response) => {
     const images = await prisma.images
       .findMany({
         where: {
@@ -441,7 +444,7 @@ app.get(
 
 app.get(
   "/api/v1/images/byname/:name/stable",
-  async (req: Request, res: Response) => {
+  async (req: Request<{ name: string }>, res: Response) => {
     const images = await prisma.images
       .findMany({
         where: {
