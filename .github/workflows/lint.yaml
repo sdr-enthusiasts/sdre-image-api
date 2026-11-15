@@ -22,6 +22,10 @@ jobs:
           nix_path: nixpkgs=channel:nixos-unstable
 
       - name: Run flake pre-commit hooks
+        env:
+          # Lets the lychee link check use the GitHub API for github.com links
+          # instead of being rate limited.
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           nix develop -c bash -c '
             npm i
